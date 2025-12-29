@@ -8,6 +8,25 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$isWindowsOs = $false
+$isMacOs = $false
+$isLinuxOs = $false
+if (Get-Variable -Name IsWindows -ErrorAction SilentlyContinue) {
+  $isWindowsOs = $IsWindows
+  $isMacOs = $IsMacOS
+  $isLinuxOs = $IsLinux
+} else {
+  $isWindowsOs = $env:OS -eq "Windows_NT"
+}
+
+function Get-VenvPythonPath {
+  param([string]$VenvPath)
+  if ($isWindowsOs) {
+    return (Join-Path $VenvPath "Scripts\\python.exe")
+  }
+  return (Join-Path $VenvPath "bin/python")
+}
+
 if (-not $BundleRoot) {
   $BundleRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 } else {
@@ -24,7 +43,7 @@ if (-not (Test-Path $venvPath)) {
   & $PythonExe -m venv $venvPath
 }
 
-$venvPython = Join-Path $venvPath "Scripts\\python.exe"
+$venvPython = Get-VenvPythonPath -VenvPath $venvPath
 if (-not (Test-Path $venvPython)) {
   throw "Virtual env python not found: $venvPython"
 }
@@ -38,4 +57,8 @@ if ($Extras) {
 
 Write-Host ""
 Write-Host "Docling installed into: $venvPath"
-Write-Host "Activate with: $venvPath\\Scripts\\Activate.ps1"
+if ($isWindowsOs) {
+  Write-Host "Activate with: $venvPath\\Scripts\\Activate.ps1"
+} else {
+  Write-Host "Activate with: $venvPath/bin/Activate.ps1"
+}

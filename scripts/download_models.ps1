@@ -11,6 +11,21 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$isWindowsOs = $false
+if (Get-Variable -Name IsWindows -ErrorAction SilentlyContinue) {
+  $isWindowsOs = $IsWindows
+} else {
+  $isWindowsOs = $env:OS -eq "Windows_NT"
+}
+
+function Get-VenvPythonPath {
+  param([string]$VenvPath)
+  if ($isWindowsOs) {
+    return (Join-Path $VenvPath "Scripts\\python.exe")
+  }
+  return (Join-Path $VenvPath "bin/python")
+}
+
 if (-not $BundleRoot) {
   $BundleRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 } else {
@@ -18,9 +33,9 @@ if (-not $BundleRoot) {
 }
 
 $venvPath = Join-Path $BundleRoot $VenvDir
-$doclingTools = Join-Path $venvPath "Scripts\\docling-tools.exe"
-if (-not (Test-Path $doclingTools)) {
-  throw "docling-tools not found: $doclingTools"
+$venvPython = Get-VenvPythonPath -VenvPath $venvPath
+if (-not (Test-Path $venvPython)) {
+  throw "Virtual env python not found: $venvPython"
 }
 
 $modelsPath = Join-Path $BundleRoot $OutputDir
@@ -28,10 +43,10 @@ if (-not (Test-Path $modelsPath)) {
   $null = New-Item -ItemType Directory -Path $modelsPath
 }
 
-$args = @("models", "download", "-o", $modelsPath)
+$args = @("-m", "docling.cli.tools", "models", "download", "-o", $modelsPath)
 if ($All) { $args += "--all" }
 if ($Force) { $args += "--force" }
 if ($Quiet) { $args += "--quiet" }
 if ($Models.Count -gt 0) { $args += $Models }
 
-& $doclingTools @args
+& $venvPython @args
