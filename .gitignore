@@ -1,0 +1,7 @@
+dist/
+.venv/
+_build_venv/
+wheelhouse/
+models/
+*.zip
+*.log
